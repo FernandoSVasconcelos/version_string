@@ -35,7 +35,7 @@ void getRDIVersion(__uint8_t *ble_version, __uint8_t *gnss_version){
 
     printf("\n"); 
     rdi_version = buffer;
-    for(int i=0; i<VERSION_SIZE*2; i++) printf("Char = %c\n", 'A' + *rdi_version++);
+    for(int i=0; i<VERSION_SIZE*2; i++) printf("Char = %c\n", '0' + *rdi_version++);
 
 }
 

@@ -2,57 +2,56 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define VERSION_SIZE 8
+#define VERSION_SIZE   32
+#define HEADER_SIZE    4
+#define END_SIZE       1
+#define SYSTEM_MODULES 9 /* PBOOT SBOOT SAM BLE GNSS GUI RTP RTP-SBOOT RTP-PBOOT */
+#define RDI_LEN (VERSION_SIZE * SYSTEM_MODULES)
 
-void getGnssVersion (__uint8_t *version);
-void getBLEVersion (__uint8_t *version);
-void printVersion (__uint8_t *version);
-void getRDIVersion(__uint8_t *ble_version, __uint8_t *gnss_version);
 
-void printVersion (__uint8_t *version){
-    for(int i=0; i<VERSION_SIZE; i++) printf("0x%.02x ", *version++);
-    printf("\n");
+typedef __uint8_t version_t[VERSION_SIZE];
+void getGnssVersion (version_t version);
+void getBLEVersion  (version_t version);
+void getRDIVersion(version_t ble_version, version_t gnss_version, char *rdivrs);
+
+void getGnssVersion (version_t version){
+    for(int i=0; i<sizeof(version_t); i++) version[i] = '0' + i%10;
+    // printf("GNSS Version > %s\r\n", &version[0]);
 }
 
-void getGnssVersion (__uint8_t *version){
-    for(int i=0; i<VERSION_SIZE; i++) *version++ = 0x02+i;
-}
-
-void getBLEVersion (__uint8_t *version){
-    for(int i=0; i<VERSION_SIZE; i++) *version++ = 0x04+i;
+void getBLEVersion (version_t version){
+    for(int i=0; i<sizeof(version_t); i++) version[i] = 'a' + i%26;
+    // printf("BLE Version > %s\r\n", &version[0]);
 }
 
 
-void getRDIVersion(__uint8_t *ble_version, __uint8_t *gnss_version){
-    __uint8_t buffer[32], *rdi_version = buffer;
+void getRDIVersion(version_t ble_version, version_t gnss_version, char *rdivrs){
+    char ble_header[HEADER_SIZE] = {'B', 'L', 'E', '-'};
+    char gnss_header[HEADER_SIZE] = {'G', 'N', 'S', '-'};
+    char end_char = ';';
 
-    for(int i=0; i<VERSION_SIZE; i++) *rdi_version++ = *ble_version++;
-    for(int i=0; i<VERSION_SIZE; i++) *rdi_version++ = *gnss_version++;
+    memcpy(rdivrs, ble_header, HEADER_SIZE);
+    memcpy(rdivrs + HEADER_SIZE, ble_version, sizeof(version_t));
+    memcpy(rdivrs + HEADER_SIZE + VERSION_SIZE, &end_char, END_SIZE);
 
-    rdi_version = buffer;
-    printf("RDI Version > ");
-    for(int i=0; i<VERSION_SIZE*2; i++) printf("0x%.02x ", *rdi_version++);
+    memcpy(rdivrs + HEADER_SIZE + END_SIZE + VERSION_SIZE, gnss_header, HEADER_SIZE);
+    memcpy(rdivrs + HEADER_SIZE*2 + END_SIZE + VERSION_SIZE, gnss_version, VERSION_SIZE);
+    memcpy(rdivrs + HEADER_SIZE*2 + END_SIZE + VERSION_SIZE*2, &end_char, END_SIZE);
 
-    printf("\n"); 
-    rdi_version = buffer;
-    for(int i=0; i<VERSION_SIZE*2; i++) printf("Char = %c\n", '0' + *rdi_version++);
-
+    printf("RDI Version > %s\r\n", &rdivrs[0]);
+    
 }
 
 void main(void){
 
-    __uint8_t gnss_vrs[8];
-    __uint8_t ble_vrs [8];
+    version_t gnss_vrs;
+    version_t ble_vrs;
+    char rdi_vrs[RDI_LEN] = {0};
 
     getGnssVersion(gnss_vrs);
-    printf("GNSS Version > ");
-    printVersion(gnss_vrs);
-
     getBLEVersion(ble_vrs);
-    printf("ble Version > ");
-    printVersion(ble_vrs);
 
-    getRDIVersion(ble_vrs, gnss_vrs);
+    getRDIVersion(ble_vrs, gnss_vrs, rdi_vrs);
     
 }
 
